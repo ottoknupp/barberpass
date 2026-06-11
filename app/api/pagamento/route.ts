@@ -87,8 +87,10 @@ export async function POST(req: NextRequest) {
     });
 
     const subscription = await subscriptionRes.json();
+    console.log("Pagar.me subscription response:", JSON.stringify(subscription));
     if (!subscriptionRes.ok) {
-      return NextResponse.json({ error: subscription.message || "Erro ao criar assinatura" }, { status: 400 });
+      const errMsg = subscription.errors ? JSON.stringify(subscription.errors) : (subscription.message || "Erro ao criar assinatura");
+      return NextResponse.json({ error: errMsg }, { status: 400 });
     }
 
     return NextResponse.json({
