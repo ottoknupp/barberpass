@@ -14,6 +14,7 @@ export default function NovoPlanoPage() {
     nome: "",
     descricao: "",
     preco: "",
+    limite_cortes: "",
     beneficios: [] as string[],
   });
 
@@ -54,6 +55,7 @@ export default function NovoPlanoPage() {
         nome: form.nome,
         descricao: form.descricao,
         preco: parseFloat(form.preco),
+        limite_cortes: parseInt(form.limite_cortes) || 0,
         beneficios: form.beneficios,
         ativo: true,
       });
@@ -142,6 +144,19 @@ export default function NovoPlanoPage() {
                   min="1"
                   step="0.01"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Limite de cortes por mês</label>
+                <input
+                  type="number"
+                  name="limite_cortes"
+                  value={form.limite_cortes}
+                  onChange={handleChange}
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="Ex: 3 (0 = ilimitado)"
+                  min="0"
                 />
               </div>
             </div>

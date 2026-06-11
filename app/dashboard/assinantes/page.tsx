@@ -14,6 +14,8 @@ type Assinante = {
   created_at: string;
   plano_nome: string;
   cortes_mes: number;
+  limite_cortes: number;
+  ultimo_checkin_id: string | null;
 };
 
 const statusColor: Record<string, string> = {
@@ -53,25 +55,27 @@ export default function AssinantesPage() {
         status,
         created_at,
         customers (id, nome, email, telefone),
-        subscription_plans (nome)
+        subscription_plans (nome, limite_cortes)
       `)
       .eq("customers.barbershop_id", barbershop.id)
       .order("created_at", { ascending: false });
 
-    // Buscar check-ins do mês atual
     const inicioMes = new Date();
     inicioMes.setDate(1);
     inicioMes.setHours(0, 0, 0, 0);
 
     const { data: checkins } = await supabase
       .from("checkins")
-      .select("customer_id")
+      .select("id, customer_id, created_at")
       .eq("barbershop_id", barbershop.id)
-      .gte("created_at", inicioMes.toISOString());
+      .gte("created_at", inicioMes.toISOString())
+      .order("created_at", { ascending: false });
 
     const contagemCheckins: Record<string, number> = {};
-    (checkins || []).forEach((c: { customer_id: string }) => {
+    const ultimoCheckin: Record<string, string> = {};
+    (checkins || []).forEach((c: { id: string; customer_id: string }) => {
       contagemCheckins[c.customer_id] = (contagemCheckins[c.customer_id] || 0) + 1;
+      if (!ultimoCheckin[c.customer_id]) ultimoCheckin[c.customer_id] = c.id;
     });
 
     const lista = (data || [])
@@ -85,7 +89,9 @@ export default function AssinantesPage() {
         status: s.status,
         created_at: new Date(s.created_at).toLocaleDateString("pt-BR"),
         plano_nome: s.subscription_plans?.nome || "—",
+        limite_cortes: s.subscription_plans?.limite_cortes || 0,
         cortes_mes: contagemCheckins[s.customers.id] || 0,
+        ultimo_checkin_id: ultimoCheckin[s.customers.id] || null,
       }));
 
     setAssinantes(lista);
@@ -94,13 +100,23 @@ export default function AssinantesPage() {
 
   const registrarCorte = async (assinante: Assinante) => {
     if (!barbershopId) return;
+    if (assinante.limite_cortes > 0 && assinante.cortes_mes >= assinante.limite_cortes) {
+      alert(`${assinante.nome} já usou todos os ${assinante.limite_cortes} cortes do mês!`);
+      return;
+    }
     setRegistrando(assinante.id);
-
     await supabase.from("checkins").insert({
       customer_id: assinante.customer_id,
       barbershop_id: barbershopId,
     });
+    await carregarAssinantes();
+    setRegistrando(null);
+  };
 
+  const desfazerCorte = async (assinante: Assinante) => {
+    if (!assinante.ultimo_checkin_id) return;
+    setRegistrando(assinante.id);
+    await supabase.from("checkins").delete().eq("id", assinante.ultimo_checkin_id);
     await carregarAssinantes();
     setRegistrando(null);
   };
@@ -182,21 +198,40 @@ export default function AssinantesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Scissors size={14} className="text-[#D4AF37]" />
-                        <span className="text-white font-bold">{a.cortes_mes}</span>
-                        <span className="text-gray-500 text-sm">corte{a.cortes_mes !== 1 ? "s" : ""}</span>
+                        <Scissors size={14} className={a.limite_cortes > 0 && a.cortes_mes >= a.limite_cortes ? "text-red-400" : "text-[#D4AF37]"} />
+                        <span className={`font-bold ${a.limite_cortes > 0 && a.cortes_mes >= a.limite_cortes ? "text-red-400" : "text-white"}`}>
+                          {a.cortes_mes}
+                        </span>
+                        {a.limite_cortes > 0 && (
+                          <span className="text-gray-500 text-sm">/ {a.limite_cortes}</span>
+                        )}
+                        {a.limite_cortes > 0 && a.cortes_mes >= a.limite_cortes && (
+                          <span className="text-xs bg-red-400/10 text-red-400 px-2 py-0.5 rounded-full">Limite atingido</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-sm">{a.telefone}</td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => registrarCorte(a)}
-                        disabled={registrando === a.id}
-                        className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-sm px-3 py-2 rounded-lg hover:bg-[#D4AF37]/20 transition-colors disabled:opacity-50"
-                      >
-                        <Scissors size={14} />
-                        {registrando === a.id ? "Registrando..." : "Registrar corte"}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => registrarCorte(a)}
+                          disabled={registrando === a.id || (a.limite_cortes > 0 && a.cortes_mes >= a.limite_cortes)}
+                          className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-sm px-3 py-2 rounded-lg hover:bg-[#D4AF37]/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Scissors size={14} />
+                          {registrando === a.id ? "..." : "Registrar"}
+                        </button>
+                        {a.cortes_mes > 0 && (
+                          <button
+                            onClick={() => desfazerCorte(a)}
+                            disabled={registrando === a.id}
+                            className="text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-red-400 transition-colors disabled:opacity-30"
+                            title="Desfazer último corte"
+                          >
+                            ↩
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
