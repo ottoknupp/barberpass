@@ -17,6 +17,7 @@ type Barbearia = {
   nome: string;
   nome_responsavel: string;
   telefone: string;
+  pagarme_public_key: string;
 };
 
 export default function PaginaPublica() {
@@ -53,7 +54,7 @@ export default function PaginaPublica() {
   const carregarDados = async () => {
     const { data: barb } = await supabase
       .from("barbershops")
-      .select("id, nome, nome_responsavel, telefone")
+      .select("id, nome, nome_responsavel, telefone, pagarme_public_key")
       .eq("slug", slug)
       .single();
 
@@ -123,10 +124,10 @@ export default function PaginaPublica() {
         throw new Error("Este email já está cadastrado nesta barbearia.");
       }
 
-      // 1. Tokenizar cartão no Pagar.me
+      // 1. Tokenizar cartão no Pagar.me da barbearia
       const [expMonth, expYear] = card.validade.split("/");
       const tokenRes = await fetch(
-        `https://api.pagar.me/core/v5/tokens?appId=${process.env.NEXT_PUBLIC_PAGARME_PUBLIC_KEY}`,
+        `https://api.pagar.me/core/v5/tokens?appId=${barbearia!.pagarme_public_key}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -157,6 +158,7 @@ export default function PaginaPublica() {
           customerData: { ...form },
           planData: planoSelecionado,
           cardToken,
+          barbershopId: barbearia!.id,
         }),
       });
 

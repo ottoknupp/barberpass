@@ -15,7 +15,10 @@ export default function ConfiguracoesPage() {
     telefone: "",
     endereco: "",
     descricao: "",
+    pagarme_public_key: "",
+    pagarme_secret_key: "",
   });
+  const [mostrarSecretKey, setMostrarSecretKey] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -39,6 +42,8 @@ export default function ConfiguracoesPage() {
         telefone: data.telefone || "",
         endereco: data.endereco || "",
         descricao: data.descricao || "",
+        pagarme_public_key: data.pagarme_public_key || "",
+        pagarme_secret_key: data.pagarme_secret_key || "",
       });
     }
     setCarregando(false);
@@ -68,6 +73,8 @@ export default function ConfiguracoesPage() {
           telefone: form.telefone,
           endereco: form.endereco,
           descricao: form.descricao,
+          pagarme_public_key: form.pagarme_public_key,
+          pagarme_secret_key: form.pagarme_secret_key,
         })
         .eq("id", barbershopId);
 
@@ -193,6 +200,60 @@ export default function ConfiguracoesPage() {
                   placeholder="Ex: A melhor barbearia do bairro, especializada em cortes modernos..."
                 />
               </div>
+            </div>
+
+            <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 space-y-5">
+              <div>
+                <h2 className="text-white font-semibold">Integração Pagar.me</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  Cadastre suas chaves para que os pagamentos dos seus clientes vão direto para sua conta.
+                  Acesse <span className="text-[#D4AF37]">pagar.me</span> → Configurações → Chaves de API.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Chave pública (Public Key)</label>
+                <input
+                  type="text"
+                  name="pagarme_public_key"
+                  value={form.pagarme_public_key}
+                  onChange={handleChange}
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] font-mono text-sm"
+                  placeholder="pk_..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Chave secreta (Secret Key)</label>
+                <div className="relative">
+                  <input
+                    type={mostrarSecretKey ? "text" : "password"}
+                    name="pagarme_secret_key"
+                    value={form.pagarme_secret_key}
+                    onChange={handleChange}
+                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 pr-20 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] font-mono text-sm"
+                    placeholder="sk_..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSecretKey(!mostrarSecretKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
+                  >
+                    {mostrarSecretKey ? "Ocultar" : "Mostrar"}
+                  </button>
+                </div>
+              </div>
+
+              {form.pagarme_public_key && form.pagarme_secret_key && (
+                <div className="flex items-center gap-2 text-green-400 text-sm">
+                  <span>✓</span> Chaves configuradas — pagamentos vão para sua conta
+                </div>
+              )}
+              {(!form.pagarme_public_key || !form.pagarme_secret_key) && (
+                <div className="flex items-center gap-2 text-yellow-500 text-sm">
+                  <span>⚠</span> Sem chaves configuradas — pagamentos desativados
+                </div>
+              )}
             </div>
 
             <button

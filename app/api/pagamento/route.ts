@@ -1,20 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerData, planData, cardToken } = body;
+    const { customerData, planData, cardToken, barbershopId } = body;
 
-    const secretKey = process.env.PAGARME_SECRET_KEY!;
+    // Buscar chaves do Pagar.me da barbearia
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: barbershop } = await supabase
+      .from("barbershops")
+      .select("pagarme_secret_key")
+      .eq("id", barbershopId)
+      .single();
+
+    if (!barbershop?.pagarme_secret_key) {
+      return NextResponse.json({ error: "Barbearia sem chaves do Pagar.me configuradas." }, { status: 400 });
+    }
+
+    const secretKey = barbershop.pagarme_secret_key;
     const authHeader = "Basic " + Buffer.from(secretKey + ":").toString("base64");
 
     // 1. Criar cliente no Pagar.me
     const customerRes = await fetch("https://api.pagar.me/core/v5/customers", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: authHeader,
-      },
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
       body: JSON.stringify({
         name: customerData.nome,
         email: customerData.email,
@@ -32,7 +46,6 @@ export async function POST(req: NextRequest) {
     });
 
     const customer = await customerRes.json();
-    console.log("Customer response:", JSON.stringify(customer));
     if (!customerRes.ok) {
       return NextResponse.json({ error: customer.message || "Erro ao criar cliente" }, { status: 400 });
     }
@@ -40,38 +53,27 @@ export async function POST(req: NextRequest) {
     // 2. Criar assinatura com card_token
     const precoEmCentavos = Math.round(planData.preco * 100);
 
-    const subscriptionBody = {
-      customer_id: customer.id,
-      payment_method: "credit_card",
-      interval: "month",
-      interval_count: 1,
-      billing_type: "prepaid",
-      items: [
-        {
-          description: planData.nome,
-          quantity: 1,
-          pricing_scheme: {
-            price: precoEmCentavos,
-          },
-        },
-      ],
-      card_token: cardToken,
-    };
-
-    console.log("Subscription body:", JSON.stringify(subscriptionBody));
-
     const subscriptionRes = await fetch("https://api.pagar.me/core/v5/subscriptions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: authHeader,
-      },
-      body: JSON.stringify(subscriptionBody),
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify({
+        customer_id: customer.id,
+        payment_method: "credit_card",
+        interval: "month",
+        interval_count: 1,
+        billing_type: "prepaid",
+        items: [
+          {
+            description: planData.nome,
+            quantity: 1,
+            pricing_scheme: { price: precoEmCentavos },
+          },
+        ],
+        card_token: cardToken,
+      }),
     });
 
     const subscription = await subscriptionRes.json();
-    console.log("Subscription response:", JSON.stringify(subscription));
-
     if (!subscriptionRes.ok) {
       const errMsg = subscription.errors
         ? JSON.stringify(subscription.errors)
