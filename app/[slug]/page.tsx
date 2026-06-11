@@ -123,22 +123,6 @@ export default function PaginaPublica() {
         throw new Error("Este email já está cadastrado nesta barbearia.");
       }
 
-      // Processar pagamento via Pagar.me
-      const pagamentoRes = await fetch("/api/pagamento", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerData: { ...form },
-          planData: planoSelecionado,
-          cardData: card,
-        }),
-      });
-
-      const pagamento = await pagamentoRes.json();
-      if (!pagamentoRes.ok) {
-        throw new Error(pagamento.error || "Erro ao processar pagamento");
-      }
-
       // Salvar cliente no Supabase
       const { data: cliente, error: errCliente } = await supabase
         .from("customers")
@@ -147,7 +131,6 @@ export default function PaginaPublica() {
           nome: form.nome,
           email: form.email,
           telefone: form.telefone,
-          pagarme_customer_id: pagamento.pagarme_customer_id,
         })
         .select()
         .single();
@@ -161,7 +144,6 @@ export default function PaginaPublica() {
           customer_id: cliente.id,
           plan_id: planoSelecionado!.id,
           status: "ativo",
-          pagarme_subscription_id: pagamento.pagarme_subscription_id,
         });
 
       if (errSub) throw errSub;
