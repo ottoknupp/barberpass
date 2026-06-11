@@ -430,6 +430,15 @@ export default function PaginaPublica() {
           <p className="text-gray-400">Escolha o plano ideal para você</p>
         </div>
 
+        <div className="text-center mb-8">
+          <a
+            href={`/${slug}/cancelar`}
+            className="text-gray-600 text-sm hover:text-gray-400 transition-colors"
+          >
+            Já é assinante? Clique aqui para cancelar
+          </a>
+        </div>
+
         {planos.length === 0 ? (
           <div className="text-center text-gray-400">
             <p>Nenhum plano disponível no momento.</p>
