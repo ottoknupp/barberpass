@@ -1,17 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Scissors } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Assinante = {
   id: string;
+  customer_id: string;
   nome: string;
   email: string;
   telefone: string;
   status: string;
   created_at: string;
   plano_nome: string;
+  cortes_mes: number;
 };
 
 const statusColor: Record<string, string> = {
@@ -24,6 +26,8 @@ export default function AssinantesPage() {
   const [assinantes, setAssinantes] = useState<Assinante[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
+  const [registrando, setRegistrando] = useState<string | null>(null);
+  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   useEffect(() => {
     carregarAssinantes();
@@ -40,6 +44,7 @@ export default function AssinantesPage() {
       .single();
 
     if (!barbershop) return;
+    setBarbershopId(barbershop.id);
 
     const { data } = await supabase
       .from("subscriptions")
@@ -53,20 +58,51 @@ export default function AssinantesPage() {
       .eq("customers.barbershop_id", barbershop.id)
       .order("created_at", { ascending: false });
 
+    // Buscar check-ins do mês atual
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+
+    const { data: checkins } = await supabase
+      .from("checkins")
+      .select("customer_id")
+      .eq("barbershop_id", barbershop.id)
+      .gte("created_at", inicioMes.toISOString());
+
+    const contagemCheckins: Record<string, number> = {};
+    (checkins || []).forEach((c: { customer_id: string }) => {
+      contagemCheckins[c.customer_id] = (contagemCheckins[c.customer_id] || 0) + 1;
+    });
+
     const lista = (data || [])
       .filter((s: any) => s.customers)
       .map((s: any) => ({
         id: s.id,
+        customer_id: s.customers.id,
         nome: s.customers.nome,
         email: s.customers.email,
         telefone: s.customers.telefone,
         status: s.status,
         created_at: new Date(s.created_at).toLocaleDateString("pt-BR"),
         plano_nome: s.subscription_plans?.nome || "—",
+        cortes_mes: contagemCheckins[s.customers.id] || 0,
       }));
 
     setAssinantes(lista);
     setLoading(false);
+  };
+
+  const registrarCorte = async (assinante: Assinante) => {
+    if (!barbershopId) return;
+    setRegistrando(assinante.id);
+
+    await supabase.from("checkins").insert({
+      customer_id: assinante.customer_id,
+      barbershop_id: barbershopId,
+    });
+
+    await carregarAssinantes();
+    setRegistrando(null);
   };
 
   const assinantesFiltrados = assinantes.filter(
@@ -126,8 +162,9 @@ export default function AssinantesPage() {
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Nome</th>
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Plano</th>
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Status</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Desde</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Cortes este mês</th>
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">WhatsApp</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,8 +180,24 @@ export default function AssinantesPage() {
                         {a.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-400 text-sm">{a.created_at}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Scissors size={14} className="text-[#D4AF37]" />
+                        <span className="text-white font-bold">{a.cortes_mes}</span>
+                        <span className="text-gray-500 text-sm">corte{a.cortes_mes !== 1 ? "s" : ""}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-gray-400 text-sm">{a.telefone}</td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => registrarCorte(a)}
+                        disabled={registrando === a.id}
+                        className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-sm px-3 py-2 rounded-lg hover:bg-[#D4AF37]/20 transition-colors disabled:opacity-50"
+                      >
+                        <Scissors size={14} />
+                        {registrando === a.id ? "Registrando..." : "Registrar corte"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
