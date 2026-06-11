@@ -3,30 +3,36 @@ import { Scissors, CheckCircle, Star, Users, TrendingUp, Shield } from "lucide-r
 
 const plans = [
   {
-    name: "Starter",
-    price: "R$79",
-    limit: "até 50 assinantes",
-    features: ["Planos ilimitados", "Painel de controle", "Suporte por email"],
+    name: "Grátis",
+    price: "R$0",
+    limit: "até 10 assinantes",
+    features: ["Planos ilimitados", "Painel de controle", "Link personalizado", "Registro de cortes"],
   },
   {
-    name: "Pro",
-    price: "R$149",
-    limit: "até 200 assinantes",
-    features: ["Tudo do Starter", "Relatórios avançados", "Link personalizado", "Suporte prioritário"],
+    name: "Crescimento",
+    price: "R$49",
+    limit: "até 30 assinantes",
+    features: ["Tudo do Grátis", "Cancelamento pelo cliente", "Suporte por email"],
     popular: true,
   },
   {
-    name: "Ilimitado",
-    price: "R$299",
-    limit: "sem limite de assinantes",
-    features: ["Tudo do Pro", "Multi-unidades", "API de integração", "Suporte 24/7"],
+    name: "Profissional",
+    price: "R$99",
+    limit: "até 100 assinantes",
+    features: ["Tudo do Crescimento", "Personalização da página", "Suporte prioritário"],
+  },
+  {
+    name: "Premium",
+    price: "R$199",
+    limit: "assinantes ilimitados",
+    features: ["Tudo do Profissional", "Multi-unidades", "Suporte 24/7"],
   },
 ];
 
 const features = [
   { icon: Users, title: "Gestão de Assinantes", desc: "Controle todos os seus clientes em um só lugar" },
   { icon: TrendingUp, title: "Receita Recorrente", desc: "Cobranças automáticas todo mês no cartão do cliente" },
-  { icon: Shield, title: "Pagamento Seguro", desc: "Integrado com Stripe — líder mundial em pagamentos" },
+  { icon: Shield, title: "Pagamento Seguro", desc: "Integrado com Pagar.me — líder em pagamentos no Brasil" },
   { icon: Star, title: "Link Personalizado", desc: "Sua barbearia tem uma página exclusiva para captação" },
 ];
 
@@ -53,7 +59,7 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-6 py-24 text-center">
         <div className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-full px-4 py-2 text-[#D4AF37] text-sm mb-8">
           <Star size={14} />
-          <span>14 dias grátis, sem cartão de crédito</span>
+          <span>Comece grátis, sem cartão de crédito</span>
         </div>
         <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
           Gerencie as assinaturas<br />
@@ -64,7 +70,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/cadastro" className="bg-[#D4AF37] text-black font-bold px-8 py-4 rounded-lg text-lg hover:bg-[#B8960C] transition-colors">
-            Começar grátis por 14 dias
+            Começar grátis agora
           </Link>
           <Link href="#planos" className="border border-gray-600 text-white px-8 py-4 rounded-lg text-lg hover:border-[#D4AF37] transition-colors">
             Ver planos
@@ -89,7 +95,7 @@ export default function LandingPage() {
       <section id="planos" className="max-w-6xl mx-auto px-6 py-24">
         <h2 className="text-3xl font-bold text-center text-white mb-4">Planos para sua barbearia</h2>
         <p className="text-gray-400 text-center mb-12">Escolha o plano ideal e comece a receber de forma recorrente</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => (
             <div
               key={plan.name}
