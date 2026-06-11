@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, Edit, DollarSign, ToggleLeft, ToggleRight } from "lucide-react";
@@ -56,14 +56,14 @@ export default function PlanosPage() {
       <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">✂ BarberPass</span>
+            <span className="text-lg font-bold text-white">âœ‚ BarberPass</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
           <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Assinantes</Link>
           <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Planos</Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Configurações</Link>
+          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">ConfiguraÃ§Ãµes</Link>
         </nav>
       </aside>
 
@@ -105,7 +105,7 @@ export default function PlanosPage() {
                     {plano.descricao && <p className="text-gray-500 text-sm mt-1">{plano.descricao}</p>}
                     <p className="text-[#D4AF37] text-2xl font-bold mt-2">
                       R${plano.preco.toFixed(2).replace(".", ",")}
-                      <span className="text-gray-500 text-sm">/mês</span>
+                      <span className="text-gray-500 text-sm">/mÃªs</span>
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${plano.ativo ? "bg-green-400/10 text-green-400" : "bg-gray-700 text-gray-400"}`}>
@@ -117,7 +117,7 @@ export default function PlanosPage() {
                   <ul className="space-y-2 mb-6">
                     {plano.beneficios.map((b, i) => (
                       <li key={i} className="text-gray-400 text-sm flex items-center gap-2">
-                        <span className="text-[#D4AF37]">✓</span> {b}
+                        <span className="text-[#D4AF37]">âœ“</span> {b}
                       </li>
                     ))}
                   </ul>
@@ -151,3 +151,4 @@ export default function PlanosPage() {
     </div>
   );
 }
+

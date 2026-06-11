@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,7 +40,7 @@ export default function NovoPlanoPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user) throw new Error("UsuÃ¡rio nÃ£o autenticado");
 
       const { data: barbershop } = await supabase
         .from("barbershops")
@@ -48,7 +48,7 @@ export default function NovoPlanoPage() {
         .eq("email", user.email)
         .single();
 
-      if (!barbershop) throw new Error("Barbearia não encontrada");
+      if (!barbershop) throw new Error("Barbearia nÃ£o encontrada");
 
       const { error } = await supabase.from("subscription_plans").insert({
         barbershop_id: barbershop.id,
@@ -76,21 +76,21 @@ export default function NovoPlanoPage() {
       <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">✂ BarberPass</span>
+            <span className="text-lg font-bold text-white">âœ‚ BarberPass</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
           <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Assinantes</Link>
           <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Planos</Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Configurações</Link>
+          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">ConfiguraÃ§Ãµes</Link>
         </nav>
       </aside>
 
       <main className="flex-1 p-8">
         <div className="mb-8">
           <Link href="/dashboard/planos" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
-            ← Voltar para planos
+            â† Voltar para planos
           </Link>
           <h1 className="text-2xl font-bold text-white">Criar novo plano</h1>
           <p className="text-gray-400 mt-1">Configure os detalhes do plano de assinatura</p>
@@ -105,7 +105,7 @@ export default function NovoPlanoPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 space-y-5">
-              <h2 className="text-white font-semibold">Informações do plano</h2>
+              <h2 className="text-white font-semibold">InformaÃ§Ãµes do plano</h2>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Nome do plano</label>
@@ -121,19 +121,19 @@ export default function NovoPlanoPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Descrição (opcional)</label>
+                <label className="block text-sm text-gray-400 mb-2">DescriÃ§Ã£o (opcional)</label>
                 <textarea
                   name="descricao"
                   value={form.descricao}
                   onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] resize-none"
-                  placeholder="Descreva o que está incluído neste plano..."
+                  placeholder="Descreva o que estÃ¡ incluÃ­do neste plano..."
                   rows={3}
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Preço mensal (R$)</label>
+                <label className="block text-sm text-gray-400 mb-2">PreÃ§o mensal (R$)</label>
                 <input
                   type="number"
                   name="preco"
@@ -148,7 +148,7 @@ export default function NovoPlanoPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Limite de cortes por mês</label>
+                <label className="block text-sm text-gray-400 mb-2">Limite de cortes por mÃªs</label>
                 <input
                   type="number"
                   name="limite_cortes"
@@ -162,7 +162,7 @@ export default function NovoPlanoPage() {
             </div>
 
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 space-y-4">
-              <h2 className="text-white font-semibold">Benefícios do plano</h2>
+              <h2 className="text-white font-semibold">BenefÃ­cios do plano</h2>
 
               <div className="flex gap-2">
                 <input
@@ -171,7 +171,7 @@ export default function NovoPlanoPage() {
                   onChange={(e) => setBeneficio(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarBeneficio())}
                   className="flex-1 bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="Ex: 1 corte por mês..."
+                  placeholder="Ex: 1 corte por mÃªs..."
                 />
                 <button
                   type="button"
@@ -187,7 +187,7 @@ export default function NovoPlanoPage() {
                   {form.beneficios.map((b, i) => (
                     <li key={i} className="flex items-center justify-between bg-[#0a0a0a] border border-gray-800 rounded-lg px-4 py-2">
                       <span className="text-gray-300 text-sm flex items-center gap-2">
-                        <span className="text-[#D4AF37]">✓</span> {b}
+                        <span className="text-[#D4AF37]">âœ“</span> {b}
                       </span>
                       <button type="button" onClick={() => removerBeneficio(i)} className="text-gray-600 hover:text-red-400 transition-colors">
                         <X size={16} />
@@ -198,7 +198,7 @@ export default function NovoPlanoPage() {
               )}
 
               {form.beneficios.length === 0 && (
-                <p className="text-gray-600 text-sm">Nenhum benefício adicionado ainda.</p>
+                <p className="text-gray-600 text-sm">Nenhum benefÃ­cio adicionado ainda.</p>
               )}
             </div>
 
@@ -223,3 +223,4 @@ export default function NovoPlanoPage() {
     </div>
   );
 }
+

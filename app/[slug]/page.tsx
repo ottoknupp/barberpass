@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Scissors, CheckCircle, Phone, Mail, User, CreditCard, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getLimitePlano, type PlanoBarberPass } from "@/lib/planos-barberpass";
 
 type Plano = {
   id: string;
@@ -18,6 +19,7 @@ type Barbearia = {
   nome_responsavel: string;
   telefone: string;
   pagarme_public_key: string;
+  plano: string;
 };
 
 export default function PaginaPublica() {
@@ -28,6 +30,7 @@ export default function PaginaPublica() {
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [planoSelecionado, setPlanoSelecionado] = useState<Plano | null>(null);
   const [loading, setLoading] = useState(true);
+  const [limiteBloqueado, setLimiteBloqueado] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [step, setStep] = useState<"planos" | "cadastro" | "sucesso">("planos");
   const [salvando, setSalvando] = useState(false);
@@ -54,7 +57,7 @@ export default function PaginaPublica() {
   const carregarDados = async () => {
     const { data: barb } = await supabase
       .from("barbershops")
-      .select("id, nome, nome_responsavel, telefone, pagarme_public_key")
+      .select("id, nome, nome_responsavel, telefone, pagarme_public_key, plano")
       .eq("slug", slug)
       .single();
 
@@ -65,6 +68,18 @@ export default function PaginaPublica() {
     }
 
     setBarbearia(barb);
+
+    // Verificar limite de assinantes do plano BarberPass
+    const { count } = await supabase
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("customers.barbershop_id", barb.id)
+      .eq("status", "ativo");
+
+    const limite = getLimitePlano((barb.plano || "gratis") as PlanoBarberPass);
+    if ((count || 0) >= limite) {
+      setLimiteBloqueado(true);
+    }
 
     const { data: planosData } = await supabase
       .from("subscription_plans")
@@ -469,9 +484,10 @@ export default function PaginaPublica() {
 
                 <button
                   onClick={() => selecionarPlano(plano)}
-                  className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors"
+                  disabled={limiteBloqueado}
+                  className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Assinar agora
+                  {limiteBloqueado ? "Vagas esgotadas" : "Assinar agora"}
                 </button>
               </div>
             ))}

@@ -109,6 +109,7 @@ export default function ConfiguracoesPage() {
           <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
           <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Assinantes</Link>
           <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Planos</Link>
+          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Meu Plano</Link>
           <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Configurações</Link>
         </nav>
       </aside>
@@ -137,14 +138,9 @@ export default function ConfiguracoesPage() {
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Nome da barbearia</label>
-                <input
-                  type="text"
-                  name="nome"
-                  value={form.nome}
-                  onChange={handleChange}
+                <input type="text" name="nome" value={form.nome} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  required
-                />
+                  required />
               </div>
 
               <div>
@@ -153,52 +149,32 @@ export default function ConfiguracoesPage() {
                   <span className="bg-[#111] border border-r-0 border-gray-700 rounded-l-lg px-4 py-3 text-gray-500 text-sm">
                     barberpass-vert.vercel.app/
                   </span>
-                  <input
-                    type="text"
-                    name="slug"
-                    value={form.slug}
-                    onChange={handleChange}
+                  <input type="text" name="slug" value={form.slug} onChange={handleChange}
                     className="flex-1 bg-[#0a0a0a] border border-gray-700 rounded-r-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                    required
-                  />
+                    required />
                 </div>
                 <p className="text-gray-600 text-xs mt-1">Apenas letras minúsculas, números e hífens</p>
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Telefone / WhatsApp</label>
-                <input
-                  type="text"
-                  name="telefone"
-                  value={form.telefone}
-                  onChange={handleChange}
+                <input type="text" name="telefone" value={form.telefone} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="(11) 99999-9999"
-                />
+                  placeholder="(11) 99999-9999" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Endereço</label>
-                <input
-                  type="text"
-                  name="endereco"
-                  value={form.endereco}
-                  onChange={handleChange}
+                <input type="text" name="endereco" value={form.endereco} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="Rua, número, bairro, cidade"
-                />
+                  placeholder="Rua, número, bairro, cidade" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Descrição (aparece na página pública)</label>
-                <textarea
-                  name="descricao"
-                  value={form.descricao}
-                  onChange={handleChange}
+                <textarea name="descricao" value={form.descricao} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] resize-none"
-                  rows={3}
-                  placeholder="Ex: A melhor barbearia do bairro, especializada em cortes modernos..."
-                />
+                  rows={3} placeholder="Ex: A melhor barbearia do bairro..." />
               </div>
             </div>
 
@@ -213,54 +189,37 @@ export default function ConfiguracoesPage() {
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Chave pública (Public Key)</label>
-                <input
-                  type="text"
-                  name="pagarme_public_key"
-                  value={form.pagarme_public_key}
-                  onChange={handleChange}
+                <input type="text" name="pagarme_public_key" value={form.pagarme_public_key} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] font-mono text-sm"
-                  placeholder="pk_..."
-                />
+                  placeholder="pk_..." />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Chave secreta (Secret Key)</label>
                 <div className="relative">
-                  <input
-                    type={mostrarSecretKey ? "text" : "password"}
-                    name="pagarme_secret_key"
-                    value={form.pagarme_secret_key}
-                    onChange={handleChange}
+                  <input type={mostrarSecretKey ? "text" : "password"} name="pagarme_secret_key" value={form.pagarme_secret_key} onChange={handleChange}
                     className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 pr-20 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] font-mono text-sm"
-                    placeholder="sk_..."
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setMostrarSecretKey(!mostrarSecretKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
-                  >
+                    placeholder="sk_..." />
+                  <button type="button" onClick={() => setMostrarSecretKey(!mostrarSecretKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs">
                     {mostrarSecretKey ? "Ocultar" : "Mostrar"}
                   </button>
                 </div>
               </div>
 
-              {form.pagarme_public_key && form.pagarme_secret_key && (
+              {form.pagarme_public_key && form.pagarme_secret_key ? (
                 <div className="flex items-center gap-2 text-green-400 text-sm">
                   <span>✓</span> Chaves configuradas — pagamentos vão para sua conta
                 </div>
-              )}
-              {(!form.pagarme_public_key || !form.pagarme_secret_key) && (
+              ) : (
                 <div className="flex items-center gap-2 text-yellow-500 text-sm">
                   <span>⚠</span> Sem chaves configuradas — pagamentos desativados
                 </div>
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-60"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-60">
               {loading ? "Salvando..." : "Salvar alterações"}
             </button>
           </form>
