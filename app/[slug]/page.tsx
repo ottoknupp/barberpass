@@ -123,7 +123,47 @@ export default function PaginaPublica() {
         throw new Error("Este email já está cadastrado nesta barbearia.");
       }
 
-      // Salvar cliente no Supabase
+      // 1. Tokenizar cartão no Pagar.me
+      const [expMonth, expYear] = card.validade.split("/");
+      const tokenRes = await fetch(
+        `https://api.pagar.me/core/v5/tokens?appId=${process.env.NEXT_PUBLIC_PAGARME_PUBLIC_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "card",
+            card: {
+              number: card.numero.replace(/\s/g, ""),
+              holder_name: card.nome,
+              exp_month: parseInt(expMonth),
+              exp_year: parseInt("20" + expYear),
+              cvv: card.cvv,
+            },
+          }),
+        }
+      );
+
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok) {
+        throw new Error(tokenData.message || "Erro ao validar cartão");
+      }
+      const cardToken = tokenData.id;
+
+      // 2. Criar assinatura no Pagar.me + salvar no Supabase
+      const pagRes = await fetch("/api/pagamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerData: { ...form },
+          planData: planoSelecionado,
+          cardToken,
+        }),
+      });
+
+      const pagData = await pagRes.json();
+      if (!pagRes.ok) throw new Error(pagData.error || "Erro no pagamento");
+
+      // 3. Salvar cliente no Supabase
       const { data: cliente, error: errCliente } = await supabase
         .from("customers")
         .insert({
@@ -131,19 +171,21 @@ export default function PaginaPublica() {
           nome: form.nome,
           email: form.email,
           telefone: form.telefone,
+          pagarme_customer_id: pagData.pagarme_customer_id,
         })
         .select()
         .single();
 
       if (errCliente) throw errCliente;
 
-      // Salvar assinatura no Supabase
+      // 4. Salvar assinatura no Supabase
       const { error: errSub } = await supabase
         .from("subscriptions")
         .insert({
           customer_id: cliente.id,
           plan_id: planoSelecionado!.id,
           status: "ativo",
+          pagarme_subscription_id: pagData.pagarme_subscription_id,
         });
 
       if (errSub) throw errSub;

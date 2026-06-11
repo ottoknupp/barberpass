@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerData, planData, cardData } = body;
+    const { customerData, planData, cardToken } = body;
 
     const secretKey = process.env.PAGARME_SECRET_KEY!;
     const authHeader = "Basic " + Buffer.from(secretKey + ":").toString("base64");
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
         email: customerData.email,
         type: "individual",
         document: customerData.cpf.replace(/\D/g, ""),
+        document_type: "CPF",
         phones: {
           mobile_phone: {
             country_code: "55",
@@ -31,16 +32,13 @@ export async function POST(req: NextRequest) {
     });
 
     const customer = await customerRes.json();
+    console.log("Customer response:", JSON.stringify(customer));
     if (!customerRes.ok) {
       return NextResponse.json({ error: customer.message || "Erro ao criar cliente" }, { status: 400 });
     }
 
-    // 2. Criar assinatura recorrente no Pagar.me
+    // 2. Criar assinatura com card_token
     const precoEmCentavos = Math.round(planData.preco * 100);
-
-    // 2. Criar assinatura recorrente
-    const expMonth = parseInt(cardData.validade.split("/")[0]);
-    const expYear = parseInt("20" + cardData.validade.split("/")[1]);
 
     const subscriptionBody = {
       customer_id: customer.id,
@@ -57,20 +55,7 @@ export async function POST(req: NextRequest) {
           },
         },
       ],
-      card: {
-        number: cardData.numero.replace(/\s/g, ""),
-        holder_name: cardData.nome,
-        exp_month: expMonth,
-        exp_year: expYear,
-        cvv: cardData.cvv,
-        billing_address: {
-          country: "BR",
-          state: "SP",
-          city: "São Paulo",
-          zip_code: "01310100",
-          line_1: "Avenida Paulista",
-        },
-      },
+      card_token: cardToken,
     };
 
     console.log("Subscription body:", JSON.stringify(subscriptionBody));
@@ -85,9 +70,12 @@ export async function POST(req: NextRequest) {
     });
 
     const subscription = await subscriptionRes.json();
-    console.log("Pagar.me subscription response:", JSON.stringify(subscription));
+    console.log("Subscription response:", JSON.stringify(subscription));
+
     if (!subscriptionRes.ok) {
-      const errMsg = subscription.errors ? JSON.stringify(subscription.errors) : (subscription.message || "Erro ao criar assinatura");
+      const errMsg = subscription.errors
+        ? JSON.stringify(subscription.errors)
+        : subscription.message || "Erro ao criar assinatura";
       return NextResponse.json({ error: errMsg }, { status: 400 });
     }
 
