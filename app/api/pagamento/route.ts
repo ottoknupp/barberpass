@@ -38,6 +38,28 @@ export async function POST(req: NextRequest) {
     // 2. Criar assinatura recorrente no Pagar.me
     const precoEmCentavos = Math.round(planData.preco * 100);
 
+    // 2. Tokenizar cartão
+    const tokenRes = await fetch("https://api.pagar.me/core/v5/tokens?appId=" + process.env.NEXT_PUBLIC_PAGARME_PUBLIC_KEY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "card",
+        card: {
+          number: cardData.numero.replace(/\s/g, ""),
+          holder_name: cardData.nome,
+          exp_month: parseInt(cardData.validade.split("/")[0]),
+          exp_year: parseInt("20" + cardData.validade.split("/")[1]),
+          cvv: cardData.cvv,
+        },
+      }),
+    });
+
+    const token = await tokenRes.json();
+    if (!tokenRes.ok) {
+      return NextResponse.json({ error: token.message || "Erro ao tokenizar cartão" }, { status: 400 });
+    }
+
+    // 3. Criar assinatura recorrente
     const subscriptionRes = await fetch("https://api.pagar.me/core/v5/subscriptions", {
       method: "POST",
       headers: {
@@ -60,13 +82,7 @@ export async function POST(req: NextRequest) {
             },
           },
         ],
-        card: {
-          number: cardData.numero.replace(/\s/g, ""),
-          holder_name: cardData.nome,
-          exp_month: parseInt(cardData.validade.split("/")[0]),
-          exp_year: parseInt("20" + cardData.validade.split("/")[1]),
-          cvv: cardData.cvv,
-        },
+        card_token: token.id,
       }),
     });
 
