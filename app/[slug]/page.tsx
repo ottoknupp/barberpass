@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Scissors, CheckCircle, Phone, Mail, User } from "lucide-react";
+import { Scissors, CheckCircle, Phone, Mail, User, CreditCard, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Plano = {
@@ -36,6 +36,14 @@ export default function PaginaPublica() {
     nome: "",
     email: "",
     telefone: "",
+    cpf: "",
+  });
+
+  const [card, setCard] = useState({
+    numero: "",
+    nome: "",
+    validade: "",
+    cvv: "",
   });
 
   useEffect(() => {
@@ -77,12 +85,33 @@ export default function PaginaPublica() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    const name = e.target.name;
+
+    if (name === "numero") {
+      value = value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim().slice(0, 19);
+    }
+    if (name === "validade") {
+      value = value.replace(/\D/g, "").replace(/(\d{2})(\d)/, "$1/$2").slice(0, 5);
+    }
+    if (name === "cvv") {
+      value = value.replace(/\D/g, "").slice(0, 4);
+    }
+    if (name === "cpf") {
+      value = value.replace(/\D/g, "").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4").slice(0, 14);
+    }
+
+    setCard({ ...card, [name]: value });
+  };
+
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
     setErro("");
 
     try {
+      // Verificar se já existe
       const { data: clienteExistente } = await supabase
         .from("customers")
         .select("id")
@@ -94,6 +123,23 @@ export default function PaginaPublica() {
         throw new Error("Este email já está cadastrado nesta barbearia.");
       }
 
+      // Processar pagamento via Pagar.me
+      const pagamentoRes = await fetch("/api/pagamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerData: { ...form },
+          planData: planoSelecionado,
+          cardData: card,
+        }),
+      });
+
+      const pagamento = await pagamentoRes.json();
+      if (!pagamentoRes.ok) {
+        throw new Error(pagamento.error || "Erro ao processar pagamento");
+      }
+
+      // Salvar cliente no Supabase
       const { data: cliente, error: errCliente } = await supabase
         .from("customers")
         .insert({
@@ -101,18 +147,21 @@ export default function PaginaPublica() {
           nome: form.nome,
           email: form.email,
           telefone: form.telefone,
+          pagarme_customer_id: pagamento.pagarme_customer_id,
         })
         .select()
         .single();
 
       if (errCliente) throw errCliente;
 
+      // Salvar assinatura no Supabase
       const { error: errSub } = await supabase
         .from("subscriptions")
         .insert({
           customer_id: cliente.id,
           plan_id: planoSelecionado!.id,
           status: "ativo",
+          pagarme_subscription_id: pagamento.pagarme_subscription_id,
         });
 
       if (errSub) throw errSub;
@@ -164,9 +213,9 @@ export default function PaginaPublica() {
           <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 text-left">
             <p className="text-gray-400 text-sm mb-3">Próximos passos:</p>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400" /> Aguarde o contato da barbearia</li>
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400" /> Pagamento processado com sucesso</li>
+              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400" /> Você será cobrado automaticamente todo mês</li>
               <li className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400" /> Agende seu primeiro atendimento</li>
-              <li className="flex items-center gap-2"><CheckCircle size={14} className="text-green-400" /> Aproveite os benefícios do plano</li>
             </ul>
           </div>
         </div>
@@ -200,57 +249,139 @@ export default function PaginaPublica() {
             )}
 
             <form onSubmit={handleCadastro} className="space-y-5">
+              {/* Dados pessoais */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Nome completo</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                  <input
-                    type="text"
-                    name="nome"
-                    value={form.nome}
-                    onChange={handleChange}
-                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                    placeholder="João Silva"
-                    required
-                  />
+                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                  <User size={16} className="text-[#D4AF37]" /> Seus dados
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Nome completo</label>
+                    <input
+                      type="text"
+                      name="nome"
+                      value={form.nome}
+                      onChange={handleChange}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="João Silva"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">CPF</label>
+                    <input
+                      type="text"
+                      name="cpf"
+                      value={form.cpf}
+                      onChange={handleChange}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="000.000.000-00"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                      <input
+                        type="email"
+                        name="email"
+                        value={form.email}
+                        onChange={handleChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="joao@email.com"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">WhatsApp</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                      <input
+                        type="tel"
+                        name="telefone"
+                        value={form.telefone}
+                        onChange={handleChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="(11) 99999-9999"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Dados do cartão */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                    placeholder="joao@email.com"
-                    required
-                  />
+                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                  <CreditCard size={16} className="text-[#D4AF37]" /> Cartão de crédito
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Número do cartão</label>
+                    <input
+                      type="text"
+                      name="numero"
+                      value={card.numero}
+                      onChange={handleCardChange}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="0000 0000 0000 0000"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Nome no cartão</label>
+                    <input
+                      type="text"
+                      name="nome"
+                      value={card.nome}
+                      onChange={handleCardChange}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="JOAO SILVA"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Validade</label>
+                      <input
+                        type="text"
+                        name="validade"
+                        value={card.validade}
+                        onChange={handleCardChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="MM/AA"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">CVV</label>
+                      <input
+                        type="text"
+                        name="cvv"
+                        value={card.cvv}
+                        onChange={handleCardChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="000"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">WhatsApp</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                  <input
-                    type="tel"
-                    name="telefone"
-                    value={form.telefone}
-                    onChange={handleChange}
-                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                    placeholder="(11) 99999-9999"
-                    required
-                  />
-                </div>
+
+              <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <Lock size={12} />
+                <span>Pagamento seguro processado pelo Pagar.me</span>
               </div>
+
               <button
                 type="submit"
                 disabled={salvando}
                 className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-60"
               >
-                {salvando ? "Confirmando..." : "Confirmar assinatura"}
+                {salvando ? "Processando pagamento..." : `Assinar por R$${planoSelecionado?.preco.toFixed(2).replace(".", ",")}/mês`}
               </button>
             </form>
 
