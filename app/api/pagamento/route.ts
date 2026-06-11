@@ -38,52 +38,50 @@ export async function POST(req: NextRequest) {
     // 2. Criar assinatura recorrente no Pagar.me
     const precoEmCentavos = Math.round(planData.preco * 100);
 
-    // 2. Tokenizar cartão
-    const tokenRes = await fetch("https://api.pagar.me/core/v5/tokens?appId=" + process.env.NEXT_PUBLIC_PAGARME_PUBLIC_KEY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "card",
-        card: {
-          number: cardData.numero.replace(/\s/g, ""),
-          holder_name: cardData.nome,
-          exp_month: parseInt(cardData.validade.split("/")[0]),
-          exp_year: parseInt("20" + cardData.validade.split("/")[1]),
-          cvv: cardData.cvv,
+    // 2. Criar assinatura recorrente
+    const expMonth = parseInt(cardData.validade.split("/")[0]);
+    const expYear = parseInt("20" + cardData.validade.split("/")[1]);
+
+    const subscriptionBody = {
+      customer_id: customer.id,
+      payment_method: "credit_card",
+      interval: "month",
+      interval_count: 1,
+      billing_type: "prepaid",
+      items: [
+        {
+          description: planData.nome,
+          quantity: 1,
+          pricing_scheme: {
+            price: precoEmCentavos,
+          },
         },
-      }),
-    });
+      ],
+      card: {
+        number: cardData.numero.replace(/\s/g, ""),
+        holder_name: cardData.nome,
+        exp_month: expMonth,
+        exp_year: expYear,
+        cvv: cardData.cvv,
+        billing_address: {
+          country: "BR",
+          state: "SP",
+          city: "São Paulo",
+          zip_code: "01310100",
+          line_1: "Avenida Paulista",
+        },
+      },
+    };
 
-    const token = await tokenRes.json();
-    if (!tokenRes.ok) {
-      return NextResponse.json({ error: token.message || "Erro ao tokenizar cartão" }, { status: 400 });
-    }
+    console.log("Subscription body:", JSON.stringify(subscriptionBody));
 
-    // 3. Criar assinatura recorrente
     const subscriptionRes = await fetch("https://api.pagar.me/core/v5/subscriptions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: authHeader,
       },
-      body: JSON.stringify({
-        customer_id: customer.id,
-        payment_method: "credit_card",
-        currency: "BRL",
-        interval: "month",
-        interval_count: 1,
-        billing_type: "prepaid",
-        items: [
-          {
-            description: planData.nome,
-            quantity: 1,
-            pricing_scheme: {
-              price: precoEmCentavos,
-            },
-          },
-        ],
-        card_token: token.id,
-      }),
+      body: JSON.stringify(subscriptionBody),
     });
 
     const subscription = await subscriptionRes.json();
