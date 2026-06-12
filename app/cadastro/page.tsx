@@ -67,7 +67,7 @@ export default function CadastroPage() {
             <span className="text-2xl font-bold text-white">BarberPass</span>
           </Link>
           <h1 className="text-2xl font-bold text-white">Cadastre sua barbearia</h1>
-          <p className="text-gray-400 mt-2">14 dias grátis, sem cartão de crédito</p>
+          <p className="text-gray-400 mt-2">Grátis até 10 assinantes, sem cartão de crédito</p>
         </div>
 
         <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-8">

@@ -1,14 +1,23 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Scissors, Users, TrendingUp, DollarSign, Settings, LogOut, CheckCircle } from "lucide-react";
+import { Scissors, Users, TrendingUp, DollarSign, Settings, LogOut, CheckCircle, X, CreditCard, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { PLANOS, getPlanoAtual, type PlanoBarberPass } from "@/lib/planos-barberpass";
 
 export default function MeuPlanoPage() {
   const [planoAtual, setPlanoAtual] = useState<PlanoBarberPass>("gratis");
   const [totalAssinantes, setTotalAssinantes] = useState(0);
+  const [barbershopId, setBarbershopId] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Checkout
+  const [checkoutPlano, setCheckoutPlano] = useState<PlanoBarberPass | null>(null);
+  const [processando, setProcessando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState(false);
+  const [holder, setHolder] = useState({ nome: "", cpfCnpj: "", cep: "", numero: "" });
+  const [card, setCard] = useState({ numero: "", nome: "", validade: "", cvv: "" });
 
   useEffect(() => {
     carregarDados();
@@ -25,10 +34,11 @@ export default function MeuPlanoPage() {
       .single();
 
     if (!barbershop) return;
+    setBarbershopId(barbershop.id);
 
     const { count } = await supabase
       .from("subscriptions")
-      .select("id", { count: "exact", head: true })
+      .select("id, customers!inner(barbershop_id)", { count: "exact", head: true })
       .eq("customers.barbershop_id", barbershop.id)
       .eq("status", "ativo");
 
@@ -43,8 +53,77 @@ export default function MeuPlanoPage() {
     window.location.href = "/login";
   };
 
-  const planosOrdem: PlanoBarberPass[] = ["gratis", "crescimento", "profissional", "premium"];
+  const abrirCheckout = (p: PlanoBarberPass) => {
+    setCheckoutPlano(p);
+    setErro("");
+    setSucesso(false);
+  };
 
+  const fecharCheckout = () => {
+    if (processando) return;
+    setCheckoutPlano(null);
+    setHolder({ nome: "", cpfCnpj: "", cep: "", numero: "" });
+    setCard({ numero: "", nome: "", validade: "", cvv: "" });
+  };
+
+  const handleHolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    const name = e.target.name;
+    if (name === "cpfCnpj") value = value.replace(/\D/g, "").slice(0, 14);
+    if (name === "cep") value = value.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 9);
+    setHolder({ ...holder, [name]: value });
+  };
+
+  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    const name = e.target.name;
+    if (name === "numero") value = value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim().slice(0, 19);
+    if (name === "validade") value = value.replace(/\D/g, "").replace(/(\d{2})(\d)/, "$1/$2").slice(0, 5);
+    if (name === "cvv") value = value.replace(/\D/g, "").slice(0, 4);
+    setCard({ ...card, [name]: value });
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkoutPlano) return;
+    setProcessando(true);
+    setErro("");
+
+    try {
+      const res = await fetch("/api/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          barbershopId,
+          plano: checkoutPlano,
+          holder,
+          card,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao processar pagamento");
+
+      // Atualiza o plano da barbearia (sessão autenticada -> RLS permite)
+      const { error: errUpd } = await supabase
+        .from("barbershops")
+        .update({ plano: checkoutPlano })
+        .eq("id", barbershopId);
+      if (errUpd) throw errUpd;
+
+      setPlanoAtual(checkoutPlano);
+      setSucesso(true);
+      setCheckoutPlano(null);
+      setHolder({ nome: "", cpfCnpj: "", cep: "", numero: "" });
+      setCard({ numero: "", nome: "", validade: "", cvv: "" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao processar pagamento";
+      setErro(message);
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const planosOrdem: PlanoBarberPass[] = ["gratis", "crescimento", "profissional", "premium"];
   const limiteAtual = PLANOS[planoAtual].limite;
   const porcentagem = limiteAtual === Infinity ? 0 : Math.min((totalAssinantes / limiteAtual) * 100, 100);
   const proximoPlano = planosOrdem[planosOrdem.indexOf(planoAtual) + 1];
@@ -92,6 +171,11 @@ export default function MeuPlanoPage() {
           <p className="text-gray-400">Carregando...</p>
         ) : (
           <div className="max-w-3xl space-y-6">
+            {sucesso && (
+              <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg px-4 py-3 text-sm">
+                ✓ Upgrade realizado! Seu plano foi atualizado e a cobrança mensal está ativa.
+              </div>
+            )}
 
             {/* Plano atual */}
             <div className="bg-[#1a1a1a] border border-[#D4AF37]/40 rounded-xl p-6">
@@ -107,7 +191,6 @@ export default function MeuPlanoPage() {
                 </div>
               </div>
 
-              {/* Barra de uso */}
               <div className="mb-2">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">Assinantes ativos</span>
@@ -143,6 +226,7 @@ export default function MeuPlanoPage() {
               {planosOrdem.map((p) => {
                 const info = PLANOS[p];
                 const isAtual = p === planoAtual;
+                const podeAssinar = info.preco > 0 && !isAtual;
                 return (
                   <div
                     key={p}
@@ -160,22 +244,123 @@ export default function MeuPlanoPage() {
                     <p className="text-gray-400 text-sm mt-1">
                       {info.limite === Infinity ? "Assinantes ilimitados" : `Até ${info.limite} assinantes`}
                     </p>
-                    {isAtual && (
+                    {isAtual ? (
                       <div className="flex items-center gap-2 text-green-400 text-sm mt-4">
                         <CheckCircle size={14} /> Plano ativo
                       </div>
+                    ) : podeAssinar ? (
+                      <button
+                        onClick={() => abrirCheckout(p)}
+                        className="w-full mt-4 bg-[#D4AF37] text-black font-bold py-2.5 rounded-lg hover:bg-[#B8960C] transition-colors text-sm"
+                      >
+                        Assinar este plano
+                      </button>
+                    ) : (
+                      <div className="mt-4 text-gray-600 text-sm">Plano gratuito padrão</div>
                     )}
                   </div>
                 );
               })}
             </div>
-
-            <p className="text-gray-500 text-sm text-center">
-              Para fazer upgrade, entre em contato: <span className="text-[#D4AF37]">suporte@barberpass.com.br</span>
-            </p>
           </div>
         )}
       </main>
+
+      {/* Modal de checkout */}
+      {checkoutPlano && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-4 py-8 z-50 overflow-y-auto">
+          <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl w-full max-w-md my-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
+              <div>
+                <h3 className="text-white font-bold text-lg">Assinar {PLANOS[checkoutPlano].nome}</h3>
+                <p className="text-[#D4AF37] font-bold">R${PLANOS[checkoutPlano].preco}/mês</p>
+              </div>
+              <button onClick={fecharCheckout} className="text-gray-500 hover:text-white" disabled={processando}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCheckout} className="p-6 space-y-4">
+              {erro && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">
+                  {erro}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Nome do responsável</label>
+                <input type="text" name="nome" value={holder.nome} onChange={handleHolderChange}
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="Seu nome completo" required />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">CPF ou CNPJ da barbearia</label>
+                <input type="text" name="cpfCnpj" value={holder.cpfCnpj} onChange={handleHolderChange}
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                  placeholder="Somente números" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">CEP</label>
+                  <input type="text" name="cep" value={holder.cep} onChange={handleHolderChange}
+                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                    placeholder="00000-000" required />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Número</label>
+                  <input type="text" name="numero" value={holder.numero} onChange={handleHolderChange}
+                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                    placeholder="Ex: 123" required />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-800">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2 mt-3">
+                  <CreditCard size={16} className="text-[#D4AF37]" /> Cartão de crédito
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Número do cartão</label>
+                    <input type="text" name="numero" value={card.numero} onChange={handleCardChange}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="0000 0000 0000 0000" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Nome no cartão</label>
+                    <input type="text" name="nome" value={card.nome} onChange={handleCardChange}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="JOAO SILVA" required />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Validade</label>
+                      <input type="text" name="validade" value={card.validade} onChange={handleCardChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="MM/AA" required />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">CVV</label>
+                      <input type="text" name="cvv" value={card.cvv} onChange={handleCardChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="000" required />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <Lock size={12} />
+                <span>Cobrança mensal automática · cancele quando quiser</span>
+              </div>
+
+              <button type="submit" disabled={processando}
+                className="w-full bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-60">
+                {processando ? "Processando..." : `Assinar por R$${PLANOS[checkoutPlano].preco}/mês`}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

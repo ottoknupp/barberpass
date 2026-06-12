@@ -78,20 +78,23 @@ export default function CancelarPage() {
   const confirmarCancelamento = async () => {
     if (!assinante) return;
     setSalvando(true);
+    setErro("");
 
-    const { error } = await supabase
-      .from("subscriptions")
-      .update({ status: "cancelado" })
-      .eq("id", assinante.subscriptionId);
+    try {
+      const res = await fetch("/api/cancelar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: assinante.subscriptionId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao cancelar");
 
-    if (error) {
+      setStep("cancelado");
+    } catch {
       setErro("Erro ao cancelar. Tente novamente.");
+    } finally {
       setSalvando(false);
-      return;
     }
-
-    setStep("cancelado");
-    setSalvando(false);
   };
 
   if (loading) {

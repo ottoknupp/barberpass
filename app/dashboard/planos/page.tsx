@@ -15,6 +15,7 @@ type Plano = {
 
 export default function PlanosPage() {
   const [planos, setPlanos] = useState<Plano[]>([]);
+  const [assinantesPorPlano, setAssinantesPorPlano] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,7 +40,23 @@ export default function PlanosPage() {
       .eq("barbershop_id", barbershop.id)
       .order("created_at", { ascending: true });
 
-    setPlanos(data || []);
+    const lista = data || [];
+    setPlanos(lista);
+
+    if (lista.length > 0) {
+      const { data: subs } = await supabase
+        .from("subscriptions")
+        .select("plan_id")
+        .in("plan_id", lista.map((p) => p.id))
+        .eq("status", "ativo");
+
+      const contagem: Record<string, number> = {};
+      (subs || []).forEach((s: { plan_id: string }) => {
+        contagem[s.plan_id] = (contagem[s.plan_id] || 0) + 1;
+      });
+      setAssinantesPorPlano(contagem);
+    }
+
     setLoading(false);
   };
 
@@ -138,7 +155,7 @@ export default function PlanosPage() {
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-800">
                   <span className="text-gray-500 text-sm flex items-center gap-1">
-                    <DollarSign size={14} /> 0 assinantes
+                    <Users size={14} /> {assinantesPorPlano[plano.id] || 0} {(assinantesPorPlano[plano.id] || 0) === 1 ? "assinante" : "assinantes"}
                   </span>
                   <div className="flex gap-2">
                     <button onClick={() => toggleAtivo(plano)}

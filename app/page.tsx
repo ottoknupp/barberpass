@@ -32,7 +32,7 @@ const plans = [
 const features = [
   { icon: Users, title: "Gestão de Assinantes", desc: "Controle todos os seus clientes em um só lugar" },
   { icon: TrendingUp, title: "Receita Recorrente", desc: "Cobranças automáticas todo mês no cartão do cliente" },
-  { icon: Shield, title: "Pagamento Seguro", desc: "Integrado com Pagar.me — líder em pagamentos no Brasil" },
+  { icon: Shield, title: "Pagamento Seguro", desc: "Integrado com Asaas — pagamentos direto na sua conta" },
   { icon: Star, title: "Link Personalizado", desc: "Sua barbearia tem uma página exclusiva para captação" },
 ];
 
@@ -136,7 +136,7 @@ export default function LandingPage() {
           <Scissors className="text-[#D4AF37]" size={16} />
           <span className="text-white font-semibold">BarberPass</span>
         </div>
-        <p>© 2024 BarberPass. Todos os direitos reservados.</p>
+        <p>© 2026 BarberPass. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

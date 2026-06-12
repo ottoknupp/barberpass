@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Scissors } from "lucide-react";
+import { Search, Scissors, Users, TrendingUp, DollarSign, Settings, LogOut, Undo2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Assinante = {
@@ -54,7 +54,7 @@ export default function AssinantesPage() {
         id,
         status,
         created_at,
-        customers (id, nome, email, telefone),
+        customers!inner (id, nome, email, telefone, barbershop_id),
         subscription_plans (nome, limite_cortes)
       `)
       .eq("customers.barbershop_id", barbershop.id)
@@ -88,7 +88,7 @@ export default function AssinantesPage() {
         telefone: s.customers.telefone,
         status: s.status,
         created_at: new Date(s.created_at).toLocaleDateString("pt-BR"),
-        plano_nome: s.subscription_plans?.nome || "â€”",
+        plano_nome: s.subscription_plans?.nome || "—",
         limite_cortes: s.subscription_plans?.limite_cortes || 0,
         cortes_mes: contagemCheckins[s.customers.id] || 0,
         ultimo_checkin_id: ultimoCheckin[s.customers.id] || null,
@@ -101,7 +101,7 @@ export default function AssinantesPage() {
   const registrarCorte = async (assinante: Assinante) => {
     if (!barbershopId) return;
     if (assinante.limite_cortes > 0 && assinante.cortes_mes >= assinante.limite_cortes) {
-      alert(`${assinante.nome} jÃ¡ usou todos os ${assinante.limite_cortes} cortes do mÃªs!`);
+      alert(`${assinante.nome} já usou todos os ${assinante.limite_cortes} cortes do mês!`);
       return;
     }
     setRegistrando(assinante.id);
@@ -121,6 +121,11 @@ export default function AssinantesPage() {
     setRegistrando(null);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   const assinantesFiltrados = assinantes.filter(
     (a) =>
       a.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -132,16 +137,32 @@ export default function AssinantesPage() {
       <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">✂ BarberPass</span>
+            <Scissors className="text-[#D4AF37]" size={20} />
+            <span className="text-lg font-bold text-white">BarberPass</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
-          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Assinantes</Link>
-          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Planos</Link>
-          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Meu Plano</Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Configurações</Link>
+          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <TrendingUp size={18} /> Dashboard
+          </Link>
+          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">
+            <Users size={18} /> Assinantes
+          </Link>
+          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <DollarSign size={18} /> Planos
+          </Link>
+          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <TrendingUp size={18} /> Meu Plano
+          </Link>
+          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <Settings size={18} /> Configurações
+          </Link>
         </nav>
+        <div className="p-4 border-t border-gray-800">
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 transition-colors w-full">
+            <LogOut size={18} /> Sair
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 p-8">
@@ -168,7 +189,7 @@ export default function AssinantesPage() {
         ) : assinantesFiltrados.length === 0 ? (
           <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-12 text-center">
             <p className="text-gray-400">
-              {busca ? "Nenhum assinante encontrado." : "Nenhum assinante ainda. Compartilhe seu link pÃºblico para captar clientes!"}
+              {busca ? "Nenhum assinante encontrado." : "Nenhum assinante ainda. Compartilhe seu link público para captar clientes!"}
             </p>
           </div>
         ) : (
@@ -179,9 +200,9 @@ export default function AssinantesPage() {
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Nome</th>
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Plano</th>
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Status</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Cortes este mÃªs</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Cortes este mês</th>
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">WhatsApp</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">AÃ§Ã£o</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Ação</th>
                 </tr>
               </thead>
               <tbody>
@@ -227,9 +248,9 @@ export default function AssinantesPage() {
                             onClick={() => desfazerCorte(a)}
                             disabled={registrando === a.id}
                             className="text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-800 hover:text-red-400 transition-colors disabled:opacity-30"
-                            title="Desfazer Ãºltimo corte"
+                            title="Desfazer último corte"
                           >
-                            â†©
+                            <Undo2 size={16} />
                           </button>
                         )}
                       </div>
@@ -244,4 +265,3 @@ export default function AssinantesPage() {
     </div>
   );
 }
-

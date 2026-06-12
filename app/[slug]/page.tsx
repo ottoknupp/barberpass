@@ -72,7 +72,7 @@ export default function PaginaPublica() {
 
     const { count } = await supabase
       .from("subscriptions")
-      .select("id", { count: "exact", head: true })
+      .select("id, customers!inner(barbershop_id)", { count: "exact", head: true })
       .eq("customers.barbershop_id", barb.id)
       .eq("status", "ativo");
 
