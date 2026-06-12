@@ -2,13 +2,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Scissors } from "lucide-react";
+import { Scissors, MailCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function CadastroPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
+  const [emailEnviado, setEmailEnviado] = useState(false);
   const [form, setForm] = useState({
     nomeBarbearia: "",
     nomeResponsavel: "",
@@ -33,9 +34,17 @@ export default function CadastroPage() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.senha,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login?confirmado=1`,
+        },
       });
 
       if (authError) throw authError;
+
+      // Com confirmação de email ativa, email repetido volta sem identities
+      if (authData.user && authData.user.identities?.length === 0) {
+        throw new Error("Este email já está cadastrado. Faça login.");
+      }
 
       const slug = gerarSlug(form.nomeBarbearia);
 
@@ -49,7 +58,12 @@ export default function CadastroPage() {
 
       if (dbError) throw dbError;
 
-      router.push("/dashboard");
+      if (authData.session) {
+        // Confirmação de email desativada no Supabase: entra direto
+        router.push("/dashboard");
+      } else {
+        setEmailEnviado(true);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao criar conta";
       setErro(message);
@@ -57,6 +71,32 @@ export default function CadastroPage() {
       setLoading(false);
     }
   };
+
+  if (emailEnviado) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <MailCheck className="text-[#D4AF37]" size={40} />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">Confirme seu email</h1>
+          <p className="text-gray-400 mb-2">
+            Enviamos um link de confirmação para{" "}
+            <span className="text-white font-semibold">{form.email}</span>
+          </p>
+          <p className="text-gray-500 text-sm mb-8">
+            Clique no link do email para ativar sua conta. Confira também a caixa de spam.
+          </p>
+          <Link
+            href="/login"
+            className="inline-block bg-[#D4AF37] text-black font-bold px-8 py-3 rounded-lg hover:bg-[#B8960C] transition-colors"
+          >
+            Ir para o login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12">

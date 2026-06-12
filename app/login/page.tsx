@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Scissors } from "lucide-react";
@@ -9,21 +9,54 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [naoConfirmado, setNaoConfirmado] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("confirmado") === "1") {
+      setAviso("Email confirmado! Agora é só entrar.");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErro("");
+    setAviso("");
+    setNaoConfirmado(false);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setErro("Email ou senha incorretos.");
+      if (error.message.toLowerCase().includes("not confirmed")) {
+        setErro("Você ainda não confirmou seu email. Verifique sua caixa de entrada (e o spam).");
+        setNaoConfirmado(true);
+      } else {
+        setErro("Email ou senha incorretos.");
+      }
       setLoading(false);
     } else {
       router.push("/dashboard");
+    }
+  };
+
+  const reenviarConfirmacao = async () => {
+    setReenviando(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/login?confirmado=1` },
+    });
+    setReenviando(false);
+    if (error) {
+      setErro("Não foi possível reenviar. Tente novamente em alguns minutos.");
+    } else {
+      setErro("");
+      setNaoConfirmado(false);
+      setAviso("Email de confirmação reenviado! Confira sua caixa de entrada.");
     }
   };
 
@@ -40,9 +73,24 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-8">
+          {aviso && (
+            <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg px-4 py-3 mb-5 text-sm">
+              {aviso}
+            </div>
+          )}
           {erro && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 mb-5 text-sm">
               {erro}
+              {naoConfirmado && (
+                <button
+                  type="button"
+                  onClick={reenviarConfirmacao}
+                  disabled={reenviando}
+                  className="block mt-2 text-[#D4AF37] hover:underline disabled:opacity-60"
+                >
+                  {reenviando ? "Reenviando..." : "Reenviar email de confirmação"}
+                </button>
+              )}
             </div>
           )}
 
