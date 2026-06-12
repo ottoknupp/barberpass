@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import Sidebar from "@/components/Sidebar";
 
 export default function EditarPlanoPage() {
   const router = useRouter();
@@ -96,22 +97,10 @@ export default function EditarPlanoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
-      <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
-        <div className="p-6 border-b border-gray-800">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">✂ BarberPass</span>
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
-          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Assinantes</Link>
-          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Planos</Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Configurações</Link>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-[#0a0a0a] md:flex">
+      <Sidebar ativo="/dashboard/planos" />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 pt-20 md:p-8 md:pt-8">
         <div className="mb-8">
           <Link href="/dashboard/planos" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
             ← Voltar para planos

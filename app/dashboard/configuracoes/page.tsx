@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import Sidebar from "@/components/Sidebar";
 
 export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(false);
@@ -98,23 +98,10 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
-      <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
-        <div className="p-6 border-b border-gray-800">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">✂ BarberPass</span>
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
-          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Assinantes</Link>
-          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Planos</Link>
-          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Meu Plano</Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Configurações</Link>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-[#0a0a0a] md:flex">
+      <Sidebar ativo="/dashboard/configuracoes" />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 pt-20 md:p-8 md:pt-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Configurações</h1>
           <p className="text-gray-400 mt-1">Dados da sua barbearia</p>
@@ -145,12 +132,13 @@ export default function ConfiguracoesPage() {
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Link público (slug)</label>
+                <p className="text-gray-600 text-xs mb-1 sm:hidden">barberpass-vert.vercel.app/</p>
                 <div className="flex items-center">
-                  <span className="bg-[#111] border border-r-0 border-gray-700 rounded-l-lg px-4 py-3 text-gray-500 text-sm">
+                  <span className="hidden sm:block bg-[#111] border border-r-0 border-gray-700 rounded-l-lg px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
                     barberpass-vert.vercel.app/
                   </span>
                   <input type="text" name="slug" value={form.slug} onChange={handleChange}
-                    className="flex-1 bg-[#0a0a0a] border border-gray-700 rounded-r-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                    className="flex-1 min-w-0 bg-[#0a0a0a] border border-gray-700 rounded-lg sm:rounded-l-none px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
                     required />
                 </div>
                 <p className="text-gray-600 text-xs mt-1">Apenas letras minúsculas, números e hífens</p>

@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Search, Scissors, Users, TrendingUp, DollarSign, Settings, LogOut, Undo2 } from "lucide-react";
+import { Search, Scissors, Undo2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import Sidebar from "@/components/Sidebar";
 
 type Assinante = {
   id: string;
@@ -121,11 +121,6 @@ export default function AssinantesPage() {
     setRegistrando(null);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  };
-
   const assinantesFiltrados = assinantes.filter(
     (a) =>
       a.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -133,39 +128,10 @@ export default function AssinantesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
-      <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
-        <div className="p-6 border-b border-gray-800">
-          <Link href="/" className="flex items-center gap-2">
-            <Scissors className="text-[#D4AF37]" size={20} />
-            <span className="text-lg font-bold text-white">BarberPass</span>
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-            <TrendingUp size={18} /> Dashboard
-          </Link>
-          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">
-            <Users size={18} /> Assinantes
-          </Link>
-          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-            <DollarSign size={18} /> Planos
-          </Link>
-          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-            <TrendingUp size={18} /> Meu Plano
-          </Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-            <Settings size={18} /> Configurações
-          </Link>
-        </nav>
-        <div className="p-4 border-t border-gray-800">
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 transition-colors w-full">
-            <LogOut size={18} /> Sair
-          </button>
-        </div>
-      </aside>
+    <div className="min-h-screen bg-[#0a0a0a] md:flex">
+      <Sidebar ativo="/dashboard/assinantes" />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 pt-20 md:p-8 md:pt-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Assinantes</h1>
           <p className="text-gray-400 mt-1">Gerencie todos os clientes da sua barbearia</p>
@@ -193,8 +159,8 @@ export default function AssinantesPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl overflow-hidden">
-            <table className="w-full">
+          <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl overflow-x-auto">
+            <table className="w-full min-w-[760px]">
               <thead>
                 <tr className="border-b border-gray-800">
                   <th className="text-left text-gray-400 text-sm font-medium px-6 py-4">Nome</th>
