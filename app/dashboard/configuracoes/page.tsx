@@ -180,26 +180,19 @@ export default function ConfiguracoesPage() {
 
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 space-y-5">
               <div>
-                <h2 className="text-white font-semibold">Integração Pagar.me</h2>
+                <h2 className="text-white font-semibold">Integração Asaas</h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  Cadastre suas chaves para que os pagamentos dos seus clientes vão direto para sua conta.
-                  Acesse <span className="text-[#D4AF37]">pagar.me</span> → Configurações → Chaves de API.
+                  Conecte sua conta Asaas para receber os pagamentos dos seus clientes direto na sua conta.
+                  Acesse <span className="text-[#D4AF37]">app.asaas.com</span> → Configurações → Chaves de API → Gerar chave.
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Chave pública (Public Key)</label>
-                <input type="text" name="pagarme_public_key" value={form.pagarme_public_key} onChange={handleChange}
-                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] font-mono text-sm"
-                  placeholder="pk_..." />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Chave secreta (Secret Key)</label>
+                <label className="block text-sm text-gray-400 mb-2">Chave de API Asaas</label>
                 <div className="relative">
                   <input type={mostrarSecretKey ? "text" : "password"} name="pagarme_secret_key" value={form.pagarme_secret_key} onChange={handleChange}
                     className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 pr-20 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] font-mono text-sm"
-                    placeholder="sk_..." />
+                    placeholder="$aact_prod_..." />
                   <button type="button" onClick={() => setMostrarSecretKey(!mostrarSecretKey)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs">
                     {mostrarSecretKey ? "Ocultar" : "Mostrar"}
@@ -207,13 +200,13 @@ export default function ConfiguracoesPage() {
                 </div>
               </div>
 
-              {form.pagarme_public_key && form.pagarme_secret_key ? (
+              {form.pagarme_secret_key ? (
                 <div className="flex items-center gap-2 text-green-400 text-sm">
-                  <span>✓</span> Chaves configuradas — pagamentos vão para sua conta
+                  <span>✓</span> Chave configurada — pagamentos vão para sua conta Asaas
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-yellow-500 text-sm">
-                  <span>⚠</span> Sem chaves configuradas — pagamentos desativados
+                  <span>⚠</span> Sem chave configurada — pagamentos desativados
                 </div>
               )}
             </div>

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Scissors, CheckCircle, Phone, Mail, User, CreditCard, Lock } from "lucide-react";
+import { Scissors, CheckCircle, Phone, Mail, User, CreditCard, Lock, MapPin } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getLimitePlano, type PlanoBarberPass } from "@/lib/planos-barberpass";
 
@@ -18,7 +18,6 @@ type Barbearia = {
   nome: string;
   nome_responsavel: string;
   telefone: string;
-  pagarme_public_key: string;
   plano: string;
 };
 
@@ -41,6 +40,8 @@ export default function PaginaPublica() {
     email: "",
     telefone: "",
     cpf: "",
+    cep: "",
+    numero_endereco: "",
   });
 
   const [card, setCard] = useState({
@@ -57,7 +58,7 @@ export default function PaginaPublica() {
   const carregarDados = async () => {
     const { data: barb } = await supabase
       .from("barbershops")
-      .select("id, nome, nome_responsavel, telefone, pagarme_public_key, plano")
+      .select("id, nome, nome_responsavel, telefone, plano")
       .eq("slug", slug)
       .single();
 
@@ -69,7 +70,6 @@ export default function PaginaPublica() {
 
     setBarbearia(barb);
 
-    // Verificar limite de assinantes do plano BarberPass
     const { count } = await supabase
       .from("subscriptions")
       .select("id", { count: "exact", head: true })
@@ -98,7 +98,17 @@ export default function PaginaPublica() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    const name = e.target.name;
+
+    if (name === "cpf") {
+      value = value.replace(/\D/g, "").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4").slice(0, 14);
+    }
+    if (name === "cep") {
+      value = value.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 9);
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,9 +124,6 @@ export default function PaginaPublica() {
     if (name === "cvv") {
       value = value.replace(/\D/g, "").slice(0, 4);
     }
-    if (name === "cpf") {
-      value = value.replace(/\D/g, "").replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4").slice(0, 14);
-    }
 
     setCard({ ...card, [name]: value });
   };
@@ -127,7 +134,6 @@ export default function PaginaPublica() {
     setErro("");
 
     try {
-      // Verificar se já existe
       const { data: clienteExistente } = await supabase
         .from("customers")
         .select("id")
@@ -139,40 +145,13 @@ export default function PaginaPublica() {
         throw new Error("Este email já está cadastrado nesta barbearia.");
       }
 
-      // 1. Tokenizar cartão no Pagar.me da barbearia
-      const [expMonth, expYear] = card.validade.split("/");
-      const tokenRes = await fetch(
-        `https://api.pagar.me/core/v5/tokens?appId=${barbearia!.pagarme_public_key}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "card",
-            card: {
-              number: card.numero.replace(/\s/g, ""),
-              holder_name: card.nome,
-              exp_month: parseInt(expMonth),
-              exp_year: parseInt("20" + expYear),
-              cvv: card.cvv,
-            },
-          }),
-        }
-      );
-
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok) {
-        throw new Error(tokenData.message || "Erro ao validar cartão");
-      }
-      const cardToken = tokenData.id;
-
-      // 2. Criar assinatura no Pagar.me + salvar no Supabase
       const pagRes = await fetch("/api/pagamento", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerData: { ...form },
+          customerData: form,
           planData: planoSelecionado,
-          cardToken,
+          cardData: card,
           barbershopId: barbearia!.id,
         }),
       });
@@ -180,7 +159,6 @@ export default function PaginaPublica() {
       const pagData = await pagRes.json();
       if (!pagRes.ok) throw new Error(pagData.error || "Erro no pagamento");
 
-      // 3. Salvar cliente no Supabase
       const { data: cliente, error: errCliente } = await supabase
         .from("customers")
         .insert({
@@ -188,21 +166,20 @@ export default function PaginaPublica() {
           nome: form.nome,
           email: form.email,
           telefone: form.telefone,
-          pagarme_customer_id: pagData.pagarme_customer_id,
+          pagarme_customer_id: pagData.asaas_customer_id,
         })
         .select()
         .single();
 
       if (errCliente) throw errCliente;
 
-      // 4. Salvar assinatura no Supabase
       const { error: errSub } = await supabase
         .from("subscriptions")
         .insert({
           customer_id: cliente.id,
           plan_id: planoSelecionado!.id,
           status: "ativo",
-          pagarme_subscription_id: pagData.pagarme_subscription_id,
+          pagarme_subscription_id: pagData.asaas_subscription_id,
         });
 
       if (errSub) throw errSub;
@@ -290,7 +267,6 @@ export default function PaginaPublica() {
             )}
 
             <form onSubmit={handleCadastro} className="space-y-5">
-              {/* Dados pessoais */}
               <div>
                 <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                   <User size={16} className="text-[#D4AF37]" /> Seus dados
@@ -350,10 +326,38 @@ export default function PaginaPublica() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">CEP</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                        <input
+                          type="text"
+                          name="cep"
+                          value={form.cep}
+                          onChange={handleChange}
+                          className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                          placeholder="00000-000"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Número</label>
+                      <input
+                        type="text"
+                        name="numero_endereco"
+                        value={form.numero_endereco}
+                        onChange={handleChange}
+                        className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="Ex: 123"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Dados do cartão */}
               <div>
                 <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                   <CreditCard size={16} className="text-[#D4AF37]" /> Cartão de crédito
@@ -414,7 +418,7 @@ export default function PaginaPublica() {
 
               <div className="flex items-center gap-2 text-gray-500 text-xs">
                 <Lock size={12} />
-                <span>Pagamento seguro processado pelo Pagar.me</span>
+                <span>Pagamento seguro processado pelo Asaas</span>
               </div>
 
               <button
@@ -448,10 +452,7 @@ export default function PaginaPublica() {
         </div>
 
         <div className="text-center mb-8">
-          <a
-            href={`/${slug}/cancelar`}
-            className="text-gray-600 text-sm hover:text-gray-400 transition-colors"
-          >
+          <a href={`/${slug}/cancelar`} className="text-gray-600 text-sm hover:text-gray-400 transition-colors">
             Já é assinante? Clique aqui para cancelar
           </a>
         </div>

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+const ASAAS_BASE = "https://api.asaas.com/v3";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerData, planData, cardToken, barbershopId } = body;
+    const { customerData, planData, cardData, barbershopId } = body;
 
-    // Buscar chaves do Pagar.me da barbearia
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -19,72 +20,77 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!barbershop?.pagarme_secret_key) {
-      return NextResponse.json({ error: "Barbearia sem chaves do Pagar.me configuradas." }, { status: 400 });
+      return NextResponse.json({ error: "Barbearia sem chave Asaas configurada." }, { status: 400 });
     }
 
-    const secretKey = barbershop.pagarme_secret_key;
-    const authHeader = "Basic " + Buffer.from(secretKey + ":").toString("base64");
+    const apiKey = barbershop.pagarme_secret_key;
+    const headers = {
+      "Content-Type": "application/json",
+      "access_token": apiKey,
+    };
 
-    // 1. Criar cliente no Pagar.me
-    const customerRes = await fetch("https://api.pagar.me/core/v5/customers", {
+    // 1. Criar cliente no Asaas
+    const customerRes = await fetch(`${ASAAS_BASE}/customers`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      headers,
       body: JSON.stringify({
         name: customerData.nome,
+        cpfCnpj: customerData.cpf.replace(/\D/g, ""),
         email: customerData.email,
-        type: "individual",
-        document: customerData.cpf.replace(/\D/g, ""),
-        document_type: "CPF",
-        phones: {
-          mobile_phone: {
-            country_code: "55",
-            area_code: customerData.telefone.replace(/\D/g, "").substring(0, 2),
-            number: customerData.telefone.replace(/\D/g, "").substring(2),
-          },
-        },
+        mobilePhone: customerData.telefone.replace(/\D/g, ""),
       }),
     });
 
     const customer = await customerRes.json();
     if (!customerRes.ok) {
-      return NextResponse.json({ error: customer.message || "Erro ao criar cliente" }, { status: 400 });
+      const msg = customer.errors?.[0]?.description || customer.message || "Erro ao criar cliente";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
 
-    // 2. Criar assinatura com card_token
-    const precoEmCentavos = Math.round(planData.preco * 100);
+    // 2. Criar assinatura mensal com cartão
+    const hoje = new Date();
+    const nextDueDate = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
 
-    const subscriptionRes = await fetch("https://api.pagar.me/core/v5/subscriptions", {
+    const [expMonth, expYear] = cardData.validade.split("/");
+
+    const subscriptionRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      headers,
       body: JSON.stringify({
-        customer_id: customer.id,
-        payment_method: "credit_card",
-        interval: "month",
-        interval_count: 1,
-        billing_type: "prepaid",
-        items: [
-          {
-            description: planData.nome,
-            quantity: 1,
-            pricing_scheme: { price: precoEmCentavos },
-          },
-        ],
-        card_token: cardToken,
+        customer: customer.id,
+        billingType: "CREDIT_CARD",
+        value: planData.preco,
+        nextDueDate,
+        cycle: "MONTHLY",
+        description: planData.nome,
+        creditCard: {
+          holderName: cardData.nome,
+          number: cardData.numero.replace(/\s/g, ""),
+          expiryMonth: expMonth,
+          expiryYear: "20" + expYear,
+          ccv: cardData.cvv,
+        },
+        creditCardHolderInfo: {
+          name: customerData.nome,
+          email: customerData.email,
+          cpfCnpj: customerData.cpf.replace(/\D/g, ""),
+          postalCode: customerData.cep.replace(/\D/g, ""),
+          addressNumber: customerData.numero_endereco,
+          phone: customerData.telefone.replace(/\D/g, ""),
+        },
       }),
     });
 
     const subscription = await subscriptionRes.json();
     if (!subscriptionRes.ok) {
-      const errMsg = subscription.errors
-        ? JSON.stringify(subscription.errors)
-        : subscription.message || "Erro ao criar assinatura";
-      return NextResponse.json({ error: errMsg }, { status: 400 });
+      const msg = subscription.errors?.[0]?.description || subscription.message || "Erro ao criar assinatura";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
-      pagarme_customer_id: customer.id,
-      pagarme_subscription_id: subscription.id,
+      asaas_customer_id: customer.id,
+      asaas_subscription_id: subscription.id,
       status: subscription.status,
     });
   } catch (err) {
