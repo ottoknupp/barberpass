@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { Scissors, Plus, X, Users, TrendingUp, DollarSign, Settings, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function NovoPlanoPage() {
@@ -40,7 +40,7 @@ export default function NovoPlanoPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("UsuÃ¡rio nÃ£o autenticado");
+      if (!user) throw new Error("Usuário não autenticado");
 
       const { data: barbershop } = await supabase
         .from("barbershops")
@@ -48,7 +48,7 @@ export default function NovoPlanoPage() {
         .eq("email", user.email)
         .single();
 
-      if (!barbershop) throw new Error("Barbearia nÃ£o encontrada");
+      if (!barbershop) throw new Error("Barbearia não encontrada");
 
       const { error } = await supabase.from("subscription_plans").insert({
         barbershop_id: barbershop.id,
@@ -61,7 +61,6 @@ export default function NovoPlanoPage() {
       });
 
       if (error) throw error;
-
       router.push("/dashboard/planos");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao criar plano";
@@ -71,27 +70,48 @@ export default function NovoPlanoPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex">
       <aside className="w-64 bg-[#1a1a1a] border-r border-gray-800 flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">âœ‚ BarberPass</span>
+            <Scissors className="text-[#D4AF37]" size={20} />
+            <span className="text-lg font-bold text-white">BarberPass</span>
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Dashboard</Link>
-          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Assinantes</Link>
-          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">Planos</Link>
-          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Meu Plano</Link>
-          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">Configurações</Link>
+          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <TrendingUp size={18} /> Dashboard
+          </Link>
+          <Link href="/dashboard/assinantes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <Users size={18} /> Assinantes
+          </Link>
+          <Link href="/dashboard/planos" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] font-medium">
+            <DollarSign size={18} /> Planos
+          </Link>
+          <Link href="/dashboard/meu-plano" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <TrendingUp size={18} /> Meu Plano
+          </Link>
+          <Link href="/dashboard/configuracoes" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            <Settings size={18} /> Configurações
+          </Link>
         </nav>
+        <div className="p-4 border-t border-gray-800">
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 transition-colors w-full">
+            <LogOut size={18} /> Sair
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 p-8">
         <div className="mb-8">
           <Link href="/dashboard/planos" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
-            â† Voltar para planos
+            ← Voltar para planos
           </Link>
           <h1 className="text-2xl font-bold text-white">Criar novo plano</h1>
           <p className="text-gray-400 mt-1">Configure os detalhes do plano de assinatura</p>
@@ -106,79 +126,47 @@ export default function NovoPlanoPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 space-y-5">
-              <h2 className="text-white font-semibold">InformaÃ§Ãµes do plano</h2>
+              <h2 className="text-white font-semibold">Informações do plano</h2>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Nome do plano</label>
-                <input
-                  type="text"
-                  name="nome"
-                  value={form.nome}
-                  onChange={handleChange}
+                <input type="text" name="nome" value={form.nome} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="Ex: Corte Mensal, VIP Ilimitado..."
-                  required
-                />
+                  placeholder="Ex: Corte Mensal, VIP Ilimitado..." required />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">DescriÃ§Ã£o (opcional)</label>
-                <textarea
-                  name="descricao"
-                  value={form.descricao}
-                  onChange={handleChange}
+                <label className="block text-sm text-gray-400 mb-2">Descrição (opcional)</label>
+                <textarea name="descricao" value={form.descricao} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] resize-none"
-                  placeholder="Descreva o que estÃ¡ incluÃ­do neste plano..."
-                  rows={3}
-                />
+                  placeholder="Descreva o que está incluído neste plano..." rows={3} />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">PreÃ§o mensal (R$)</label>
-                <input
-                  type="number"
-                  name="preco"
-                  value={form.preco}
-                  onChange={handleChange}
+                <label className="block text-sm text-gray-400 mb-2">Preço mensal (R$)</label>
+                <input type="number" name="preco" value={form.preco} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="80.00"
-                  min="1"
-                  step="0.01"
-                  required
-                />
+                  placeholder="80.00" min="1" step="0.01" required />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Limite de cortes por mÃªs</label>
-                <input
-                  type="number"
-                  name="limite_cortes"
-                  value={form.limite_cortes}
-                  onChange={handleChange}
+                <label className="block text-sm text-gray-400 mb-2">Limite de cortes por mês</label>
+                <input type="number" name="limite_cortes" value={form.limite_cortes} onChange={handleChange}
                   className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="Ex: 3 (0 = ilimitado)"
-                  min="0"
-                />
+                  placeholder="Ex: 3 (0 = ilimitado)" min="0" />
               </div>
             </div>
 
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 space-y-4">
-              <h2 className="text-white font-semibold">BenefÃ­cios do plano</h2>
+              <h2 className="text-white font-semibold">Benefícios do plano</h2>
 
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={beneficio}
-                  onChange={(e) => setBeneficio(e.target.value)}
+                <input type="text" value={beneficio} onChange={(e) => setBeneficio(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarBeneficio())}
                   className="flex-1 bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#D4AF37]"
-                  placeholder="Ex: 1 corte por mÃªs..."
-                />
-                <button
-                  type="button"
-                  onClick={adicionarBeneficio}
-                  className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] px-4 py-3 rounded-lg hover:bg-[#D4AF37]/20 transition-colors"
-                >
+                  placeholder="Ex: 1 corte por mês..." />
+                <button type="button" onClick={adicionarBeneficio}
+                  className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] px-4 py-3 rounded-lg hover:bg-[#D4AF37]/20 transition-colors">
                   <Plus size={18} />
                 </button>
               </div>
@@ -188,7 +176,7 @@ export default function NovoPlanoPage() {
                   {form.beneficios.map((b, i) => (
                     <li key={i} className="flex items-center justify-between bg-[#0a0a0a] border border-gray-800 rounded-lg px-4 py-2">
                       <span className="text-gray-300 text-sm flex items-center gap-2">
-                        <span className="text-[#D4AF37]">âœ“</span> {b}
+                        <span className="text-[#D4AF37]">✓</span> {b}
                       </span>
                       <button type="button" onClick={() => removerBeneficio(i)} className="text-gray-600 hover:text-red-400 transition-colors">
                         <X size={16} />
@@ -199,22 +187,17 @@ export default function NovoPlanoPage() {
               )}
 
               {form.beneficios.length === 0 && (
-                <p className="text-gray-600 text-sm">Nenhum benefÃ­cio adicionado ainda.</p>
+                <p className="text-gray-600 text-sm">Nenhum benefício adicionado ainda.</p>
               )}
             </div>
 
             <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-60"
-              >
+              <button type="submit" disabled={loading}
+                className="flex-1 bg-[#D4AF37] text-black font-bold py-3 rounded-lg hover:bg-[#B8960C] transition-colors disabled:opacity-60">
                 {loading ? "Criando plano..." : "Criar plano"}
               </button>
-              <Link
-                href="/dashboard/planos"
-                className="px-6 py-3 border border-gray-700 text-gray-400 rounded-lg hover:border-gray-500 transition-colors text-center"
-              >
+              <Link href="/dashboard/planos"
+                className="px-6 py-3 border border-gray-700 text-gray-400 rounded-lg hover:border-gray-500 transition-colors text-center">
                 Cancelar
               </Link>
             </div>
@@ -224,4 +207,3 @@ export default function NovoPlanoPage() {
     </div>
   );
 }
-
